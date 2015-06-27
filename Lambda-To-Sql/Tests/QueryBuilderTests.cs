@@ -17,6 +17,20 @@ namespace Tests
         public DateTime DateTimeExample { get; set; }
     }
 
+    class JoinExample
+    {
+        [CustomColumn]
+        public int IntExample { get; set; }
+        [CustomColumn]
+        public string StringExample { get; set; }
+        [CustomColumn]
+        public bool BoolExample { get; set; }
+        [CustomColumn]
+        public decimal DecimalExample { get; set; }
+        [CustomColumn]
+        public DateTime DateTimeExample { get; set; }
+    }
+
     [TestFixture]
     public class QueryBuilderTests
     {
@@ -26,7 +40,9 @@ namespace Tests
             var from = DateTime.UtcNow.AddDays(-1);
             var to = DateTime.UtcNow;
             var query =
-                new QueryBuilder<Example>().Where(
+                new QueryBuilder<Example>()
+                .Join<JoinExample>(x=>x.IntExample,x=>x.DateTimeExample)
+                .Where(
                     x =>
                         x.DateTimeExample > from && x.DateTimeExample < to &&
                         (x.StringExample == "Test" || x.BoolExample))

@@ -18,6 +18,7 @@ namespace Lambda_To_Sql
             _projection = new List<string>();
             _sum = new List<string>();
             _count = new List<string>();
+            _join = new List<KeyValuePair<Type, Tuple<string, string>>>();
         }
 
         private Expression<Func<T, bool>> _where { get; set; }
@@ -26,15 +27,15 @@ namespace Lambda_To_Sql
         private List<string> _projection { get; set; }
         private List<string> _sum { get; set; }
         private List<string> _count { get; set; }
-        
+        private List<KeyValuePair<Type,Tuple<string,string>>> _join  { get; set; }
         private int _limit { get; set; }
         private int _offset { get; set; }
 
 
         public string Select()
         {
-            return string.Format("SELECT {0}{1}{2} FROM {3} {4} {5} {6} {7} {8}", Projection(), Sum(), Count(),
-                typeof (T).Name, Where(), GroupBy(), OrderBy(), Offset(), Limit());
+            return string.Format("SELECT {0}{1}{2} FROM {3} {4} {5} {6} {7} {8} {9}", Projection(), Sum(), Count(),
+                typeof (T).Name,Join(), Where(), GroupBy(), OrderBy(), Offset(), Limit());
         }
 
         public QueryBuilder<T> Where(Expression<Func<T, bool>> expression)
@@ -42,7 +43,7 @@ namespace Lambda_To_Sql
             _where = _where == null
                 ? expression
                 : Expression.Lambda<Func<T, bool>>(
-                    Expression.AndAlso(((BinaryExpression) _where.Body), (BinaryExpression) expression.Body),
+                    Expression.AndAlso(_where.Body, expression.Body),
                     _where.Parameters);
             return this;
         }
@@ -51,6 +52,22 @@ namespace Lambda_To_Sql
         {
             var where = ConvertExpressionToString(_where.Body);
             return string.IsNullOrEmpty(where) ? string.Empty : string.Format("WHERE {0}", where);
+        }
+
+        public QueryBuilder<T> Join<J>(Expression<Func<T, object>> left, Expression<Func<J, object>> right)
+        {
+            _join.Add(new KeyValuePair<Type, Tuple<string, string>>(typeof (J),
+                new Tuple<string, string>(ConvertExpressionToString(left), ConvertExpressionToString(right))));
+            return this;
+        }
+
+        public string Join()
+        {
+            return string.Join(" ",
+                _join.Select(
+                    x =>
+                        string.Format("JOIN {0} ON {1}.{2}={3}.{4}", x.Key.Name, typeof (T).Name, x.Value.Item1,
+                            x.Key.Name, x.Value.Item2)));
         }
 
         public QueryBuilder<T> GroupBy(params Expression<Func<T, object>>[] expression)
