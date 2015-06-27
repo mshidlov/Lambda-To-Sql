@@ -13,19 +13,19 @@ namespace Lambda_To_Sql
         public QueryBuilder()
         {
             _where = null;
-            _groupBy = new List<Expression<Func<T, object>>>();
-            _orderBy = new List<Expression<Func<T, object>>>();
-            _projection = new List<Expression<Func<T, object>>>();
-            _sum = new List<Expression<Func<T, object>>>();
-            _count = new List<Expression<Func<T, object>>>();
+            _groupBy = new List<string>();
+            _orderBy = new List<string>();
+            _projection = new List<string>();
+            _sum = new List<string>();
+            _count = new List<string>();
         }
 
         private Expression<Func<T, bool>> _where { get; set; }
-        private List<Expression<Func<T, object>>> _groupBy { get; set; }
-        private List<Expression<Func<T, object>>> _orderBy { get; set; }
-        private List<Expression<Func<T, object>>> _projection { get; set; }
-        private List<Expression<Func<T, object>>> _sum { get; set; }
-        private List<Expression<Func<T, object>>> _count { get; set; }
+        private List<string> _groupBy { get; set; }
+        private List<string> _orderBy { get; set; }
+        private List<string> _projection { get; set; }
+        private List<string> _sum { get; set; }
+        private List<string> _count { get; set; }
         
         private int _limit { get; set; }
         private int _offset { get; set; }
@@ -33,7 +33,7 @@ namespace Lambda_To_Sql
 
         public string Select()
         {
-            return string.Format("SELECT {0}{1}{2} FROM {3} WHERE {4} {5} {6} {7} {8}", Projection(), Sum(), Count(),
+            return string.Format("SELECT {0}{1}{2} FROM {3} {4} {5} {6} {7} {8}", Projection(), Sum(), Count(),
                 typeof (T).Name, Where(), GroupBy(), OrderBy(), Offset(), Limit());
         }
 
@@ -55,26 +55,24 @@ namespace Lambda_To_Sql
 
         public QueryBuilder<T> GroupBy(params Expression<Func<T, object>>[] expression)
         {
-            _groupBy.AddRange(expression);
+            _groupBy.AddRange(expression.Select(ConvertExpressionToString));
             return this;
         }
 
         public string GroupBy()
         {
-            var groupBy = _groupBy.Select(e => ((MemberExpression) e.Body).Member.Name).ToList();
-            return groupBy.Any() ? string.Format("GROUP BY {0}", string.Join(",", groupBy)) : string.Empty;
+            return _groupBy.Any() ? string.Format("GROUP BY {0}", string.Join(",", _groupBy)) : string.Empty;
         }
 
         public QueryBuilder<T> OrderBy(params Expression<Func<T, object>>[] expression)
         {
-            _orderBy.AddRange(expression);
+            _orderBy.AddRange(expression.Select(ConvertExpressionToString));
             return this;
         }
 
         public string OrderBy()
         {
-            var orderBy = _orderBy.Select(e => ((MemberExpression) e.Body).Member.Name).ToList();
-            return orderBy.Any() ? string.Format("ORDER BY {0}", string.Join(",", orderBy)) : string.Empty;
+            return _orderBy.Any() ? string.Format("ORDER BY {0}", string.Join(",", _orderBy)) : string.Empty;
         }
 
 
@@ -103,7 +101,7 @@ namespace Lambda_To_Sql
 
         public QueryBuilder<T> Sum(params Expression<Func<T, object>>[] expression)
         {
-            _sum.AddRange(expression);
+            _sum.AddRange(expression.Select(ConvertExpressionToString));
             return this;
         }
         public string Sum()
@@ -112,7 +110,7 @@ namespace Lambda_To_Sql
         }
         public QueryBuilder<T> Count(params Expression<Func<T, object>>[] expression)
         {
-            _count.AddRange(expression);
+            _count.AddRange(expression.Select(ConvertExpressionToString));
             return this;
         }
         public string Count()
@@ -122,15 +120,12 @@ namespace Lambda_To_Sql
 
         public List<string> Projections()
         {
-            var custum =
-                _projection.Select(e => ((MemberExpression)e.Body).Member.Name).ToList();
-            var groupBy = _groupBy.Select(e => ((MemberExpression)e.Body).Member.Name).ToList();
-            var properties = groupBy.Any() ? groupBy : Properties();
-            if (custum.Any())
+            var properties = _groupBy.Any() ? _groupBy : Properties();
+            if (_projection.Any())
             {
-                custum = custum.Intersect(properties).ToList();
+                _projection = _projection.Intersect(properties).ToList();
             }
-            return custum.Any() ? custum : properties;
+            return _projection.Any() ? _projection : properties;
         }
 
         public string Projection()

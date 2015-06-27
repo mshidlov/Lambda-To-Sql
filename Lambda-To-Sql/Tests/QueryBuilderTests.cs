@@ -30,7 +30,7 @@ namespace Tests
                     x =>
                         x.DateTimeExample > from && x.DateTimeExample < to &&
                         (x.StringExample == "Test" || x.BoolExample))
-                    .GroupBy(x => x.StringExample)
+                    .GroupBy(x=> x.IntExample,x=> x.StringExample)
                     .OrderBy(x => x.StringExample)
                     .Sum(x => x.DecimalExample)
                     .Select();
